@@ -24,13 +24,13 @@ func New(queue string) *Dozer {
 	return &Dozer{Queue: queue}
 }
 
-//
+// Set the message type field
 func (d *Dozer) WithMessageType(typ string) *Dozer {
 	d.msgTyp = typ
 	return d
 }
 
-//
+// Set the protocol name field
 func (d *Dozer) WithProtocol(protocolName string) *Dozer {
 	d.protoName = protocolName
 	return d
@@ -42,7 +42,7 @@ func (d *Dozer) Connect(host string, port int64) error {
 	// TODO: Add more protocols here...
 	if d.protoName == "stomp" {
 		var err error
-		p, err = proto.LoadProtocol("stomp", d.Queue, d.msgTyp, "tcp")
+		p, err = proto.LoadProtocol("stomp", d.msgTyp, "tcp")
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func (d *Dozer) Connect(host string, port int64) error {
 // Receive messages from the lower level protocol and forward them to a channel
 // until a quit signal fires.
 func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
-	if err := d.protocol.Subscribe(); err != nil {
+	if err := d.protocol.Subscribe(d.Queue); err != nil {
 		return err
 	}
 	if err := d.protocol.RecvLoop(messages, quit); err != nil {

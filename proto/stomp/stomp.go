@@ -6,7 +6,6 @@
 package stomp
 
 import (
-	"errors"
 	"fmt"
 	stmp "github.com/go-stomp/stomp"
 	"github.com/zdavep/dozer/proto"
@@ -15,7 +14,6 @@ import (
 
 // Stomp protocol type.
 type DozerProtocolStomp struct {
-	queue   string
 	network string
 	msgType string
 	conn    *stmp.Conn
@@ -30,19 +28,13 @@ func init() {
 // Intialize the stomp protocol
 func (p *DozerProtocolStomp) Init(args ...string) error {
 	argLen := len(args)
-	if argLen == 0 {
-		return errors.New("Missing queue/topic name")
-	}
 	if argLen >= 1 {
-		p.queue = args[0]
-	}
-	if argLen >= 2 {
-		p.msgType = args[1]
+		p.msgType = args[0]
 	} else {
 		p.msgType = "text/plain"
 	}
-	if argLen >= 3 {
-		p.network = args[2]
+	if argLen >= 2 {
+		p.network = args[1]
 	} else {
 		p.network = "tcp"
 	}
@@ -61,8 +53,8 @@ func (p *DozerProtocolStomp) Dial(host string, port int64) error {
 }
 
 // Subscribe to the given queue or topic using the stomp protocol.
-func (p *DozerProtocolStomp) Subscribe() error {
-	sub, err := p.conn.Subscribe(p.queue, stmp.AckClientIndividual)
+func (p *DozerProtocolStomp) Subscribe(queue string) error {
+	sub, err := p.conn.Subscribe(queue, stmp.AckClientIndividual)
 	if err != nil {
 		p.conn.Disconnect()
 		return err
@@ -92,11 +84,11 @@ func (p *DozerProtocolStomp) RecvLoop(messages chan []byte, quit chan bool) erro
 }
 
 // Send messages to a queue/topic from a channel until a quit signal fires.
-func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) error {
+func (p *DozerProtocolStomp) SendLoop(queue string, messages chan []byte, quit chan bool) error {
 	for {
 		select {
 		case msg := <-messages:
-			if err := p.conn.Send(p.queue, p.msgType, msg, nil); err != nil {
+			if err := p.conn.Send(queue, p.msgType, msg, nil); err != nil {
 				p.subs.Unsubscribe()
 				p.conn.Disconnect()
 				return err
