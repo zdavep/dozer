@@ -28,7 +28,7 @@ func messageHandler(messages chan []byte, quit chan bool) {
 func main() {
 
 	// Create a stomp dozer instance for a queue named "test"
-	dz := dozer.New("test").WithMessageType("text/plain").WithProtocol("stomp")
+	dz := dozer.Queue("test").WithProtocol("stomp").WithMessageType("text/plain")
 	err := dz.Connect("localhost", 61613)
 	if err != nil {
 		log.Fatal(err)

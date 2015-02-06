@@ -19,9 +19,14 @@ type Dozer struct {
 	protocol  proto.DozerProtocol
 }
 
-// Create a new Dozer with no content type.
-func New(queue string) *Dozer {
+// Create a new Dozer queue.
+func Queue(queue string) *Dozer {
 	return &Dozer{Queue: queue}
+}
+
+// Create a new Dozer topic.
+func Topic(topic string) *Dozer {
+	return &Dozer{Queue: "/topic/" + topic}
 }
 
 // Set the message type field
@@ -63,6 +68,15 @@ func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 		return err
 	}
 	if err := d.protocol.RecvLoop(messages, quit); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Send messages to the lower level protocol from a channel until a quit signal
+// fires.
+func (d *Dozer) SendLoop(queue string, messages chan []byte, quit chan bool) error {
+	if err := d.protocol.SendLoop(queue, messages, quit); err != nil {
 		return err
 	}
 	return nil

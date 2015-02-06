@@ -70,14 +70,12 @@ func (p *DozerProtocolStomp) RecvLoop(messages chan []byte, quit chan bool) erro
 		case msg := <-p.subs.C:
 			messages <- msg.Body
 			if err := p.conn.Ack(msg); err != nil {
-				p.subs.Unsubscribe()
-				p.conn.Disconnect()
+				p.close()
 				return err
 			}
 		case <-quit:
 			log.Println("Quit signal received")
-			p.subs.Unsubscribe()
-			p.conn.Disconnect()
+			p.close()
 			return nil
 		}
 	}
@@ -89,15 +87,25 @@ func (p *DozerProtocolStomp) SendLoop(queue string, messages chan []byte, quit c
 		select {
 		case msg := <-messages:
 			if err := p.conn.Send(queue, p.msgType, msg, nil); err != nil {
-				p.subs.Unsubscribe()
-				p.conn.Disconnect()
+				p.close()
 				return err
 			}
 		case <-quit:
 			log.Println("Quit signal received")
-			p.subs.Unsubscribe()
-			p.conn.Disconnect()
+			p.close()
 			return nil
 		}
+	}
+}
+
+// Unsubscribe from queue and disconnect.
+func (p *DozerProtocolStomp) close() {
+	if p.subs != nil && p.subs.Active() {
+		if err := p.subs.Unsubscribe(); err != nil {
+			log.Println(err)
+		}
+	}
+	if err := p.conn.Disconnect(); err != nil {
+		log.Println(err)
 	}
 }
