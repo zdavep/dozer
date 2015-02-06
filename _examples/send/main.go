@@ -35,7 +35,7 @@ func randString(n int64) string {
 func sendWorker(messages chan []byte, timeout chan bool, quit chan bool) {
 	for {
 		select {
-		case <- timeout:
+		case <-timeout:
 			log.Println("Timeout signal received in worker")
 			quit <- true
 			close(messages)
