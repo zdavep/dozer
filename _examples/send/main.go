@@ -38,7 +38,6 @@ func sendWorker(messages chan []byte, timeout chan bool, quit chan bool) {
 		case <-timeout:
 			log.Println("Timeout signal received in worker")
 			quit <- true
-			close(messages)
 			return
 		default:
 			time.Sleep(time.Duration(rand.Int63n(500)) * time.Millisecond)
@@ -76,6 +75,7 @@ func main() {
 	}
 
 	// Cleanup
+	close(messages)
 	close(timeout)
 	close(quit)
 }

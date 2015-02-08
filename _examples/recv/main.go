@@ -17,7 +17,6 @@ func messageHandler(messages chan []byte, quit chan bool) {
 			log.Printf("Received [ %s ]\n", string(msg))
 		case <-quit:
 			log.Println("Quit signal received in worker")
-			close(messages)
 			quit <- true
 			return
 		}
@@ -57,6 +56,7 @@ func main() {
 	<-quit
 
 	// Cleanup
+	close(messages)
 	close(timeout)
 	close(quit)
 }
