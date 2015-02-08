@@ -11,6 +11,11 @@ import (
 	_ "github.com/zdavep/dozer/proto/stomp"
 )
 
+// Supported messaging protocols.
+var validProto = map[string]bool{
+	"stomp": true,
+}
+
 // Core dozer type.
 type Dozer struct {
 	Queue     string
@@ -43,17 +48,18 @@ func (d *Dozer) WithProtocol(protocolName string) *Dozer {
 
 // Connect to queue using the stomp protocol
 func (d *Dozer) Connect(host string, port int64) error {
+	if _, ok := validProto[d.protoName]; !ok {
+		return errors.New("Unsupported protocol")
+	}
 	var p proto.DozerProtocol
-	// TODO: Add more protocols here...
 	if d.protoName == "stomp" {
 		var err error
-		p, err = proto.LoadProtocol("stomp", d.msgTyp, "tcp")
+		p, err = proto.LoadProtocol(d.protoName, d.msgTyp, "tcp")
 		if err != nil {
 			return err
 		}
-	} else {
-		return errors.New("Unsupported protocol")
 	}
+	// TODO: Add more protocols here...
 	if err := p.Dial(host, port); err != nil {
 		return err
 	}
