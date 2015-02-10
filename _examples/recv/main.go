@@ -6,18 +6,23 @@ package main
 import (
 	"github.com/zdavep/dozer"
 	"log"
+	"runtime"
+	"sync"
 	"time"
 )
 
+// Used to wait until workers have finished
+var wg sync.WaitGroup
+
 // Example message handler function.
-func messageHandler(messages chan []byte, quit chan bool) {
+func messageHandler(id int, messages chan []byte, quit chan bool) {
+	defer wg.Done()
 	for {
 		select {
-		case msg := <-messages:
-			log.Printf("Received [ %s ]\n", string(msg))
+		case message := <-messages:
+			log.Printf("%d: Received [ %s ]\n", id, string(message))
 		case <-quit:
-			log.Println("Quit signal received in worker")
-			quit <- true
+			log.Printf("Quit signal received in worker %d\n", id)
 			return
 		}
 	}
@@ -36,8 +41,12 @@ func main() {
 	// Helper channels
 	messages, quit, timeout := make(chan []byte), make(chan bool), make(chan bool)
 
-	// Start message handler goroutine
-	go messageHandler(messages, quit)
+	// Dedicate a majority of CPUs to message processing.
+	workers := runtime.NumCPU()/2 + 1
+	wg.Add(workers)
+	for i := 1; i <= workers; i++ {
+		go messageHandler(i, messages, quit)
+	}
 
 	// Start a 10 second timer
 	go func() {
@@ -51,12 +60,17 @@ func main() {
 		log.Println(err)
 	}
 
-	// Shut down worker (closes messages channel)
-	quit <- true
-	<-quit
+	// Shut down workers
+	for i := 1; i <= workers; i++ {
+		log.Printf("Sending quit signal %d\n", i)
+		quit <- true
+	}
 
 	// Cleanup
 	close(messages)
 	close(timeout)
 	close(quit)
+
+	// Wait until all workers have completed
+	wg.Wait()
 }
