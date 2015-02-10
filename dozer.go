@@ -81,8 +81,11 @@ func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 
 // Send messages to the lower level protocol from a channel until a quit signal
 // fires.
-func (d *Dozer) SendLoop(queue string, messages chan []byte, quit chan bool) error {
-	if err := d.protocol.SendLoop(queue, messages, quit); err != nil {
+func (d *Dozer) SendLoop(messages chan []byte, quit chan bool) error {
+	if d.Queue == "" {
+		return errors.New("No queue/topic provided")
+	}
+	if err := d.protocol.SendLoop(d.Queue, messages, quit); err != nil {
 		return err
 	}
 	return nil

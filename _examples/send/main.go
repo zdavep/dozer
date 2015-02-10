@@ -70,7 +70,7 @@ func main() {
 
 	// Start sending messages
 	go sendWorker(messages, timeout, quit)
-	if err := dz.SendLoop("test", messages, quit); err != nil {
+	if err := dz.SendLoop(messages, quit); err != nil {
 		log.Println(err)
 	}
 
