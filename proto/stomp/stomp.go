@@ -6,8 +6,9 @@
 package stomp
 
 import (
+	"errors"
 	"fmt"
-	stmp "github.com/go-stomp/stomp"
+	"github.com/go-stomp/stomp"
 	"github.com/zdavep/dozer/proto"
 	"log"
 )
@@ -16,8 +17,9 @@ import (
 type DozerProtocolStomp struct {
 	network string
 	msgType string
-	conn    *stmp.Conn
-	subs    *stmp.Subscription
+	conn    *stomp.Conn
+	subs    *stomp.Subscription
+	dest    string
 }
 
 // Register stomp protocol.
@@ -44,7 +46,7 @@ func (p *DozerProtocolStomp) Init(args ...string) error {
 // Connect to a stomp server
 func (p *DozerProtocolStomp) Dial(host string, port int64) error {
 	bind := fmt.Sprintf("%s:%d", host, port)
-	conn, err := stmp.Dial(p.network, bind, stmp.Options{})
+	conn, err := stomp.Dial(p.network, bind, stomp.Options{})
 	if err != nil {
 		return err
 	}
@@ -52,14 +54,24 @@ func (p *DozerProtocolStomp) Dial(host string, port int64) error {
 	return nil
 }
 
-// Subscribe to the given queue or topic using the stomp protocol.
-func (p *DozerProtocolStomp) Subscribe(queue string) error {
-	sub, err := p.conn.Subscribe(queue, stmp.AckClientIndividual)
+// Subscribe to the given queue/topic using the stomp protocol.
+func (p *DozerProtocolStomp) RecvFrom(dest string) error {
+	sub, err := p.conn.Subscribe(dest, stomp.AckClientIndividual)
 	if err != nil {
 		p.conn.Disconnect()
 		return err
 	}
 	p.subs = sub
+	p.dest = dest
+	return nil
+}
+
+// Set the name of the queue/topic we're sending to
+func (p *DozerProtocolStomp) SendTo(dest string) error {
+	if dest == "" {
+		return errors.New("Invalid queue/topic name")
+	}
+	p.dest = dest
 	return nil
 }
 
@@ -82,11 +94,11 @@ func (p *DozerProtocolStomp) RecvLoop(messages chan []byte, quit chan bool) erro
 }
 
 // Send messages to a queue/topic from a channel until a quit signal fires.
-func (p *DozerProtocolStomp) SendLoop(queue string, messages chan []byte, quit chan bool) error {
+func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) error {
 	for {
 		select {
 		case msg := <-messages:
-			if err := p.conn.Send(queue, p.msgType, msg, nil); err != nil {
+			if err := p.conn.Send(p.dest, p.msgType, msg, nil); err != nil {
 				p.close()
 				return err
 			}
@@ -98,7 +110,7 @@ func (p *DozerProtocolStomp) SendLoop(queue string, messages chan []byte, quit c
 	}
 }
 
-// Unsubscribe from queue and disconnect.
+// Unsubscribe and disconnect.
 func (p *DozerProtocolStomp) close() {
 	if p.subs != nil && p.subs.Active() {
 		if err := p.subs.Unsubscribe(); err != nil {

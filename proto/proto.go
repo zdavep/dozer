@@ -13,9 +13,10 @@ import (
 type DozerProtocol interface {
 	Init(args ...string) error
 	Dial(host string, port int64) error
-	Subscribe(queue string) error
+	RecvFrom(dest string) error
+	SendTo(dest string) error
 	RecvLoop(messages chan []byte, quit chan bool) error
-	SendLoop(queue string, messages chan []byte, quit chan bool) error
+	SendLoop(messages chan []byte, quit chan bool) error
 }
 
 // protocol registry

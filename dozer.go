@@ -18,7 +18,7 @@ var validProto = map[string]bool{
 
 // Core dozer type.
 type Dozer struct {
-	Queue     string
+	Dest     string
 	protoName string
 	msgTyp    string
 	protocol  proto.DozerProtocol
@@ -26,12 +26,12 @@ type Dozer struct {
 
 // Create a new Dozer queue.
 func Queue(queue string) *Dozer {
-	return &Dozer{Queue: queue}
+	return &Dozer{Dest: queue}
 }
 
 // Create a new Dozer topic.
 func Topic(topic string) *Dozer {
-	return &Dozer{Queue: "/topic/" + topic}
+	return &Dozer{Dest: "/topic/" + topic}
 }
 
 // Set the message type field
@@ -70,7 +70,7 @@ func (d *Dozer) Connect(host string, port int64) error {
 // Receive messages from the lower level protocol and forward them to a channel
 // until a quit signal fires.
 func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
-	if err := d.protocol.Subscribe(d.Queue); err != nil {
+	if err := d.protocol.RecvFrom(d.Dest); err != nil {
 		return err
 	}
 	if err := d.protocol.RecvLoop(messages, quit); err != nil {
@@ -82,10 +82,10 @@ func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 // Send messages to the lower level protocol from a channel until a quit signal
 // fires.
 func (d *Dozer) SendLoop(messages chan []byte, quit chan bool) error {
-	if d.Queue == "" {
-		return errors.New("No queue/topic provided")
+	if err := d.protocol.SendTo(d.Dest); err != nil {
+		return err
 	}
-	if err := d.protocol.SendLoop(d.Queue, messages, quit); err != nil {
+	if err := d.protocol.SendLoop(messages, quit); err != nil {
 		return err
 	}
 	return nil
