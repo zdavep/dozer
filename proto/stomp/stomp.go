@@ -15,7 +15,6 @@ import (
 
 // Stomp protocol type.
 type DozerProtocolStomp struct {
-	network string
 	msgType string
 	conn    *stomp.Conn
 	subs    *stomp.Subscription
@@ -35,18 +34,13 @@ func (p *DozerProtocolStomp) Init(args ...string) error {
 	} else {
 		p.msgType = "text/plain"
 	}
-	if argLen >= 2 {
-		p.network = args[1]
-	} else {
-		p.network = "tcp"
-	}
 	return nil
 }
 
 // Connect to a stomp server
 func (p *DozerProtocolStomp) Dial(host string, port int64) error {
 	bind := fmt.Sprintf("%s:%d", host, port)
-	conn, err := stomp.Dial(p.network, bind, stomp.Options{})
+	conn, err := stomp.Dial("tcp", bind, stomp.Options{})
 	if err != nil {
 		return err
 	}
