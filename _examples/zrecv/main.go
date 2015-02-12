@@ -32,7 +32,7 @@ func messageHandler(id int, messages chan []byte, quit chan bool) {
 func main() {
 
 	// Create a dozer ZeroMQ socket instance
-	dz := dozer.Socket("recv").WithProtocol("zmq4")
+	dz := dozer.Socket("pull").WithProtocol("zmq4")
 	err := dz.Connect("localhost", 5555)
 	if err != nil {
 		log.Fatal(err)

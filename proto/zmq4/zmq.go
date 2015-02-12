@@ -32,9 +32,9 @@ func (p *DozerProtocolZeroMQ) Init(args ...string) error {
 	var socket *zmq.Socket
 	var err error
 	socketType := args[0]
-	if socketType == "send" {
+	if socketType == "send" || socketType == "push" {
 		socket, err = zmq.NewSocket(zmq.PUSH)
-	} else if socketType == "recv" {
+	} else if socketType == "recv" || socketType == "pull" {
 		socket, err = zmq.NewSocket(zmq.PULL)
 	} else {
 		err = errors.New("Unsupported socket type: " + socketType)
@@ -50,9 +50,9 @@ func (p *DozerProtocolZeroMQ) Init(args ...string) error {
 // Bind/connect to a location.
 func (p *DozerProtocolZeroMQ) Dial(host string, port int64) error {
 	addr := fmt.Sprintf("tcp://%s:%d", host, port)
-	if p.socketType == "send" {
+	if p.socketType == "send" || p.socketType == "push" {
 		p.socket.Bind(addr)
-	} else if p.socketType == "recv" {
+	} else if p.socketType == "recv" || p.socketType == "pull" {
 		p.socket.Connect(addr)
 	} else {
 		return errors.New("Unsupported socket type: " + p.socketType)

@@ -53,8 +53,8 @@ func sendWorker(messages chan []byte, timeout chan bool, quit chan bool) {
 func main() {
 
 	// Create a dozer ZeroMQ socket instance
-	dz := dozer.Socket("send").WithProtocol("zmq4")
-	err := dz.Connect("*", 5555)
+	dz := dozer.Socket("push").WithProtocol("zmq4")
+	err := dz.Connect("*", 5555) // Bind to all interfaces
 	if err != nil {
 		log.Fatal(err)
 	}
