@@ -28,11 +28,8 @@ func init() {
 
 // Intialize the stomp protocol
 func (p *DozerProtocolStomp) Init(args ...string) error {
-	argLen := len(args)
-	if argLen >= 1 {
+	if len(args) >= 1 {
 		p.msgType = args[0]
-	} else {
-		p.msgType = "text/plain"
 	}
 	return nil
 }
