@@ -87,7 +87,6 @@ func (p *DozerProtocolZeroMQ) RecvLoop(messages chan []byte, quit chan bool) err
 			}
 		}
 	}
-	return nil
 }
 
 // Send messages to a ZeroMQ socket until a quit signal fires.
@@ -106,5 +105,4 @@ func (p *DozerProtocolZeroMQ) SendLoop(messages chan []byte, quit chan bool) err
 			return nil
 		}
 	}
-	return nil
 }

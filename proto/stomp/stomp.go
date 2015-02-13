@@ -68,17 +68,16 @@ func (p *DozerProtocolStomp) SendTo(dest string) error {
 
 // Receive messages from a queue/topic and forward them to a channel until a quit signal fires.
 func (p *DozerProtocolStomp) RecvLoop(messages chan []byte, quit chan bool) error {
+	defer p.close()
 	for {
 		select {
 		case msg := <-p.subs.C:
 			messages <- msg.Body
 			if err := p.conn.Ack(msg); err != nil {
-				p.close()
 				return err
 			}
 		case <-quit:
 			log.Println("Quit signal received")
-			p.close()
 			return nil
 		}
 	}
@@ -86,16 +85,15 @@ func (p *DozerProtocolStomp) RecvLoop(messages chan []byte, quit chan bool) erro
 
 // Send messages to a queue/topic from a channel until a quit signal fires.
 func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) error {
+	defer p.close()
 	for {
 		select {
 		case msg := <-messages:
 			if err := p.conn.Send(p.dest, p.msgType, msg, nil); err != nil {
-				p.close()
 				return err
 			}
 		case <-quit:
 			log.Println("Quit signal received")
-			p.close()
 			return nil
 		}
 	}
