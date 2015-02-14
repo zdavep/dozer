@@ -6,9 +6,10 @@ package main
 import (
 	"github.com/zdavep/dozer"
 	"log"
+	"os"
+	"os/signal"
 	"runtime"
 	"sync"
-	"time"
 )
 
 // Used to wait until workers have finished
@@ -28,7 +29,7 @@ func messageHandler(id int, messages chan []byte, quit chan bool) {
 	}
 }
 
-// Consume messages from a ZeroMQ socket for 30 seconds.
+// Consume messages from a ZeroMQ socket.
 func main() {
 
 	// Create a dozer ZeroMQ socket instance
@@ -39,7 +40,7 @@ func main() {
 	}
 
 	// Helper channels
-	messages, quit, timeout := make(chan []byte), make(chan bool), make(chan bool)
+	messages, quit := make(chan []byte), make(chan bool)
 
 	// Dedicate a majority of CPUs to message processing.
 	workers := runtime.NumCPU()/2 + 1
@@ -48,27 +49,30 @@ func main() {
 		go messageHandler(i, messages, quit)
 	}
 
-	// Start a 30 second timer
+	// Listen for [ctrl-c] interrupt signal
+	interrupted, interrupt := make(chan bool), make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
 	go func() {
-		<-time.After(30 * time.Second)
-		log.Println("Timeout reached")
-		timeout <- true
+		<-interrupt
+		signal.Stop(interrupt)
+		interrupted <- true
 	}()
 
 	// Start receiving messages
-	if err := dz.RecvLoop(messages, timeout); err != nil {
+	log.Println("Receiving messages; hit [ctrl-c] to quit.")
+	if err := dz.RecvLoop(messages, interrupted); err != nil {
 		log.Println(err)
 	}
 
 	// Shut down workers
 	for i := 1; i <= workers; i++ {
-		log.Printf("Sending quit signal %d\n", i)
+		log.Printf("Sending quit signal to worker %d\n", i)
 		quit <- true
 	}
 
 	// Cleanup
 	close(messages)
-	close(timeout)
+	close(interrupt)
 	close(quit)
 
 	// Wait until all workers have completed
