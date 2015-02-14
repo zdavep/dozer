@@ -58,6 +58,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	// Helper channels
 	messages, timeout, quit := make(chan []byte), make(chan bool), make(chan bool)
 

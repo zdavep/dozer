@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// Helper channels
-	pipe, interrupted := make(chan []byte),  make(chan bool)
+	pipe, interrupted := make(chan []byte), make(chan bool)
 
 	// Listen for [ctrl-c] interrupt signal
 	interrupt := make(chan os.Signal, 1)
