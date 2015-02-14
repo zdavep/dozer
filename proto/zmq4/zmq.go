@@ -78,7 +78,7 @@ func (p *DozerProtocolZeroMQ) RecvLoop(messages chan []byte, quit chan bool) err
 	for {
 		select {
 		case <-quit:
-			log.Println("Quit signal received")
+			log.Println("zmq4: Quit signal received")
 			return nil
 		default:
 			data, err := p.socket.Recv(zmq.DONTWAIT)
@@ -101,7 +101,7 @@ func (p *DozerProtocolZeroMQ) SendLoop(messages chan []byte, quit chan bool) err
 				}
 			}
 		case <-quit:
-			log.Println("Quit signal received")
+			log.Println("zmq4: Quit signal received")
 			return nil
 		}
 	}

@@ -77,7 +77,7 @@ func (p *DozerProtocolStomp) RecvLoop(messages chan []byte, quit chan bool) erro
 				return err
 			}
 		case <-quit:
-			log.Println("Quit signal received")
+			log.Println("stomp: Quit signal received")
 			return nil
 		}
 	}
@@ -93,7 +93,7 @@ func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) erro
 				return err
 			}
 		case <-quit:
-			log.Println("Quit signal received")
+			log.Println("stomp: Quit signal received")
 			return nil
 		}
 	}
