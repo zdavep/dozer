@@ -10,7 +10,7 @@ import (
 	"os/signal"
 )
 
-// Consume messages from a test queue and forward them to a ZeroMQ socket for 20 seconds.
+// Consume messages from a test queue and forward them to a ZeroMQ socket.
 func main() {
 
 	// Create a dozer queue instance
