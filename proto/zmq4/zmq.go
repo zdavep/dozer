@@ -74,7 +74,7 @@ func (p *DozerProtocolZeroMQ) SendTo(dest string) error {
 
 // Receive messages from a ZeroMQ socket until a quit signal fires.
 func (p *DozerProtocolZeroMQ) RecvLoop(messages chan []byte, quit chan bool) error {
-	defer p.socket.Close()
+	defer p.Close()
 	for {
 		select {
 		case <-quit:
@@ -91,7 +91,7 @@ func (p *DozerProtocolZeroMQ) RecvLoop(messages chan []byte, quit chan bool) err
 
 // Send messages to a ZeroMQ socket until a quit signal fires.
 func (p *DozerProtocolZeroMQ) SendLoop(messages chan []byte, quit chan bool) error {
-	defer p.socket.Close()
+	defer p.Close()
 	for {
 		select {
 		case msg := <-messages:
@@ -105,4 +105,7 @@ func (p *DozerProtocolZeroMQ) SendLoop(messages chan []byte, quit chan bool) err
 			return nil
 		}
 	}
+}
+func (p *DozerProtocolZeroMQ) Close() error {
+	return p.socket.Close()
 }

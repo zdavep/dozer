@@ -7,6 +7,7 @@ package proto
 
 import (
 	"fmt"
+	"io"
 )
 
 // dozer protocol specific functions.
@@ -17,6 +18,7 @@ type DozerProtocol interface {
 	SendTo(dest string) error
 	RecvLoop(messages chan []byte, quit chan bool) error
 	SendLoop(messages chan []byte, quit chan bool) error
+	io.Closer
 }
 
 // protocol registry
