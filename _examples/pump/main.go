@@ -6,23 +6,9 @@ package main
 import (
 	"github.com/zdavep/dozer"
 	"log"
-	"time"
+	"os"
+	"os/signal"
 )
-
-// Example message pump
-func messagePump(input chan []byte, output chan []byte, quit chan bool) {
-	for {
-		select {
-		case message := <-input:
-			log.Printf("Forwarding message [ %s ]\n", string(message))
-			output <- message
-		case <-quit:
-			log.Println("Quit signal received in pump")
-			quit <- true
-			return
-		}
-	}
-}
 
 // Consume messages from a test queue and forward them to a ZeroMQ socket for 20 seconds.
 func main() {
@@ -43,41 +29,32 @@ func main() {
 	}
 
 	// Helper channels
-	input, output := make(chan []byte), make(chan []byte)
-	timeout1, timeout2 := make(chan bool), make(chan bool)
-	quit := make(chan bool)
+	pipe, interrupted := make(chan []byte),  make(chan bool)
 
-	// Start a 20 second timer
+	// Listen for [ctrl-c] interrupt signal
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
 	go func() {
-		<-time.After(20 * time.Second)
-		log.Println("Timeout reached")
-		timeout1 <- true
-		timeout2 <- true
+		<-interrupt
+		signal.Stop(interrupt)
+		interrupted <- true // Send signal to both loops
+		interrupted <- true
 	}()
-
-	// Start message pump
-	go messagePump(input, output, quit)
 
 	// Start forwarding messages to socket
 	go func() {
-		if err := socket.SendLoop(output, timeout2); err != nil {
+		if err := socket.SendLoop(pipe, interrupted); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
 	// Start receiving messages from queue
-	if err := queue.RecvLoop(input, timeout1); err != nil {
+	log.Println("Pump started; enter [ctrl-c] to quit.")
+	if err := queue.RecvLoop(pipe, interrupted); err != nil {
 		log.Fatal(err)
 	}
 
-	// Pump shutdown
-	quit <- true
-	<-quit
-
 	// Cleanup
-	close(input)
-	close(output)
-	close(timeout1)
-	close(timeout2)
-	close(quit)
+	close(pipe)
+	close(interrupted)
 }
