@@ -15,7 +15,7 @@ func main() {
 
 	// Create a dozer queue instance
 	var err error
-	queue := dozer.Queue("test").WithProtocol("stomp").WithMessageType("text/plain")
+	queue := dozer.Queue("test").WithProtocol("stomp")
 	err = queue.Connect("localhost", 61613)
 	if err != nil {
 		log.Fatal(err)

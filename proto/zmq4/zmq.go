@@ -95,10 +95,8 @@ func (p *DozerProtocolZeroMQ) SendLoop(messages chan []byte, quit chan bool) err
 	for {
 		select {
 		case msg := <-messages:
-			for {
-				if _, err := p.socket.Send(string(msg), zmq.DONTWAIT); err != nil {
-					break
-				}
+			if _, err := p.socket.Send(string(msg), zmq.DONTWAIT); err != nil {
+				log.Println(err)
 			}
 		case <-quit:
 			log.Println("zmq4: Quit signal received")
