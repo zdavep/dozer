@@ -89,7 +89,8 @@ func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) erro
 	for {
 		select {
 		case msg := <-messages:
-			if err := p.conn.Send(p.dest, p.msgType, msg, nil); err != nil {
+			h := stomp.NewHeader("persistent", "true")
+			if err := p.conn.Send(p.dest, p.msgType, msg, h); err != nil {
 				return err
 			}
 		case <-quit:
