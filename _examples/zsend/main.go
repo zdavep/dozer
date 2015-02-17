@@ -54,10 +54,11 @@ func main() {
 
 	// Create a dozer ZeroMQ socket instance
 	dz := dozer.Socket("push").WithProtocol("zmq4")
-	err := dz.Connect("*", 5555) // Bind to all interfaces
+	err := dz.Bind("*", 5555) // Bind to all interfaces
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	// Helper channels
 	messages, timeout, quit := make(chan []byte), make(chan bool), make(chan bool)
 

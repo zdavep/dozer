@@ -53,7 +53,12 @@ func (d *Dozer) WithProtocol(protocolName string) *Dozer {
 	return d
 }
 
-// Connect to queue using the stomp protocol
+// Syntactic sugar - calls Connect.
+func (d *Dozer) Bind(host string, port int64) error {
+	return d.Connect(host, port)
+}
+
+// Connect or bind to a host and port.
 func (d *Dozer) Connect(host string, port int64) error {
 	if _, ok := validProto[d.protoName]; !ok {
 		return errors.New("Unsupported protocol")
