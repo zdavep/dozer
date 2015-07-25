@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-stomp/stomp"
+	"github.com/go-stomp/stomp/frame"
 	"github.com/zdavep/dozer/proto"
 	"log"
 )
@@ -19,6 +20,12 @@ type DozerProtocolStomp struct {
 	conn    *stomp.Conn
 	subs    *stomp.Subscription
 	dest    string
+}
+
+// Default send options.
+var options []func(*frame.Frame) error = []func(*frame.Frame) error{
+	stomp.SendOpt.NoContentLength,
+	stomp.SendOpt.Header("persistent", "true"),
 }
 
 // Register stomp protocol.
@@ -37,7 +44,7 @@ func (p *DozerProtocolStomp) Init(args ...string) error {
 // Connect to a stomp server
 func (p *DozerProtocolStomp) Dial(host string, port int64) error {
 	bind := fmt.Sprintf("%s:%d", host, port)
-	conn, err := stomp.Dial("tcp", bind, stomp.Options{})
+	conn, err := stomp.Dial("tcp", bind)
 	if err != nil {
 		return err
 	}
@@ -89,8 +96,7 @@ func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) erro
 	for {
 		select {
 		case msg := <-messages:
-			h := stomp.NewHeader("persistent", "true")
-			if err := p.conn.Send(p.dest, p.msgType, msg, h); err != nil {
+			if err := p.conn.Send(p.dest, p.msgType, msg, options...); err != nil {
 				return err
 			}
 		case <-quit:
