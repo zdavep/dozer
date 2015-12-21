@@ -104,6 +104,8 @@ func (p *DozerProtocolZeroMQ) SendLoop(messages chan []byte, quit chan bool) err
 		}
 	}
 }
+
+// Close the underlying ZeroMQ socket.
 func (p *DozerProtocolZeroMQ) Close() error {
 	return p.socket.Close()
 }

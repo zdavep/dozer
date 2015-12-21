@@ -74,8 +74,7 @@ func (d *Dozer) Connect(host string, port int64) error {
 	return nil
 }
 
-// Receive messages from the lower level protocol and forward them to a channel
-// until a quit signal fires.
+// Receive messages from the lower level protocol and forward them to a channel until a quit signal fires.
 func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 	if err := d.protocol.RecvFrom(d.dest); err != nil {
 		return err
@@ -86,8 +85,7 @@ func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 	return nil
 }
 
-// Send messages to the lower level protocol from a channel until a quit signal
-// fires.
+// Send messages to the lower level protocol from a channel until a quit signal fires.
 func (d *Dozer) SendLoop(messages chan []byte, quit chan bool) error {
 	if err := d.protocol.SendTo(d.dest); err != nil {
 		return err
