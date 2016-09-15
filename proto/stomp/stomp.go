@@ -16,10 +16,9 @@ import (
 
 // Stomp protocol type.
 type DozerProtocolStomp struct {
-	msgType string
-	conn    *stomp.Conn
-	subs    *stomp.Subscription
-	dest    string
+	conn *stomp.Conn
+	subs *stomp.Subscription
+	dest string
 }
 
 // Default send options.
@@ -35,9 +34,7 @@ func init() {
 
 // Intialize the stomp protocol
 func (p *DozerProtocolStomp) Init(args ...string) error {
-	if len(args) >= 1 {
-		p.msgType = args[0]
-	}
+	// Nothing to do
 	return nil
 }
 
@@ -96,7 +93,7 @@ func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) erro
 	for {
 		select {
 		case msg := <-messages:
-			if err := p.conn.Send(p.dest, p.msgType, msg, options...); err != nil {
+			if err := p.conn.Send(p.dest, "text/plain", msg, options...); err != nil {
 				return err
 			}
 		case <-quit:

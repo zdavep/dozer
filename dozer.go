@@ -7,7 +7,6 @@ package dozer
 
 import (
 	"errors"
-	"fmt"
 	"github.com/zdavep/dozer/proto"
 	_ "github.com/zdavep/dozer/proto/amqp"
 	_ "github.com/zdavep/dozer/proto/stomp"
@@ -16,7 +15,7 @@ import (
 
 // Supported messaging protocols.
 var validProto = map[string]bool{
-	"amqp": true,
+	"amqp":  true,
 	"stomp": true,
 	"zmq4":  true,
 }
@@ -25,34 +24,26 @@ var validProto = map[string]bool{
 type Dozer struct {
 	dest      string
 	protoName string
-	ctxType   string
+	context   []string
 	protocol  proto.DozerProtocol
 }
 
 // Create a new Dozer queue.
 func Queue(queue string) *Dozer {
-	return &Dozer{dest: queue}
-}
-
-// Create a new Dozer topic.
-func Topic(topic string) *Dozer {
-	return &Dozer{dest: "/topic/" + topic}
+	return &Dozer{dest: queue, context: make([]string, 0)}
 }
 
 // Create a new Dozer socket.
-func Socket(typ string) *Dozer {
-	return &Dozer{ctxType: typ}
-}
-
-// Set the message type field
-func (d *Dozer) WithMessageType(typ string) *Dozer {
-	d.ctxType = typ
-	return d
+func Socket(socketType string) *Dozer {
+	ctx := make([]string, 0)
+	ctx = append(ctx, socketType)
+	return &Dozer{context: ctx}
 }
 
 // Set the use context type for credentials
 func (d *Dozer) WithCredentials(user, pass string) *Dozer {
-	d.ctxType = fmt.Sprintf("%s:%s", user, pass)
+	d.context = append(d.context, user)
+	d.context = append(d.context, pass)
 	return d
 }
 
@@ -72,7 +63,7 @@ func (d *Dozer) Connect(host string, port int64) error {
 	if _, ok := validProto[d.protoName]; !ok {
 		return errors.New("Unsupported protocol")
 	}
-	p, err := proto.LoadProtocol(d.protoName, d.ctxType)
+	p, err := proto.LoadProtocol(d.protoName, d.context...)
 	if err != nil {
 		return err
 	}

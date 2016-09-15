@@ -8,7 +8,7 @@ package amqp
 import (
 	"errors"
 	"fmt"
-	impl "github.com/streadway/amqp"
+	"github.com/streadway/amqp"
 	"github.com/zdavep/dozer/proto"
 	"log"
 )
@@ -16,9 +16,9 @@ import (
 // AMQP protocol type.
 type DozerProtocolAmqp struct {
 	Creds string
-	Conn  *impl.Connection
-	Chan  *impl.Channel
-	Queue impl.Queue
+	Conn  *amqp.Connection
+	Chan  *amqp.Channel
+	Queue amqp.Queue
 }
 
 // Register AMQP protocol.
@@ -28,17 +28,16 @@ func init() {
 
 // Intialize the AMQP protocol
 func (p *DozerProtocolAmqp) Init(args ...string) error {
-	if len(args) < 1 {
-		return errors.New("No amqp credentials specified.")
+	if len(args) >= 2 {
+		p.Creds = fmt.Sprintf("%s:%s", args[0], args[1])
 	}
-	p.Creds = args[0]
 	return nil
 }
 
 // Connect to a AMQP server
 func (p *DozerProtocolAmqp) Dial(host string, port int64) error {
 	bind := fmt.Sprintf("amqp://%s@%s:%d", p.Creds, host, port)
-	conn, err := impl.Dial(bind)
+	conn, err := amqp.Dial(bind)
 	if err != nil {
 		return err
 	}
@@ -72,7 +71,7 @@ func (p *DozerProtocolAmqp) SendTo(dest string) error {
 }
 
 // Create a new AMQP queue
-func newQueue(p *DozerProtocolAmqp, dest string) (q impl.Queue, err error) {
+func newQueue(p *DozerProtocolAmqp, dest string) (q amqp.Queue, err error) {
 	if dest != "" {
 		durable := true
 		q, err = p.Chan.QueueDeclare(dest, durable, false, false, false, nil)
@@ -91,7 +90,7 @@ func (p *DozerProtocolAmqp) RecvLoop(messages chan []byte, quit chan bool) error
 	}
 	go func() {
 		for msg := range queue {
-			messages <- []byte(msg.Body)
+			messages <- msg.Body
 		}
 	}()
 	<-quit
@@ -105,7 +104,7 @@ func (p *DozerProtocolAmqp) SendLoop(messages chan []byte, quit chan bool) error
 	for {
 		select {
 		case msg := <-messages:
-			err := p.Chan.Publish("", p.Queue.Name, false, false, impl.Publishing{ContentType: "text/plain", Body: []byte(msg)})
+			err := p.Chan.Publish("", p.Queue.Name, false, false, amqp.Publishing{ContentType: "text/plain", Body: msg})
 			if err != nil {
 				return err
 			}
