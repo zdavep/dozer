@@ -1,4 +1,4 @@
-// Copyright 2015 Dave Pederson.  All rights reserved.
+// Copyright 2016 Dave Pederson.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,13 +7,16 @@ package dozer
 
 import (
 	"errors"
+	"fmt"
 	"github.com/zdavep/dozer/proto"
+	_ "github.com/zdavep/dozer/proto/amqp"
 	_ "github.com/zdavep/dozer/proto/stomp"
 	_ "github.com/zdavep/dozer/proto/zmq4"
 )
 
 // Supported messaging protocols.
 var validProto = map[string]bool{
+	"amqp": true,
 	"stomp": true,
 	"zmq4":  true,
 }
@@ -44,6 +47,12 @@ func Socket(typ string) *Dozer {
 // Set the message type field
 func (d *Dozer) WithMessageType(typ string) *Dozer {
 	d.ctxType = typ
+	return d
+}
+
+// Set the use context type for credentials
+func (d *Dozer) WithCredentials(user, pass string) *Dozer {
+	d.ctxType = fmt.Sprintf("%s:%s", user, pass)
 	return d
 }
 

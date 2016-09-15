@@ -1,5 +1,7 @@
 _examples/pump/pump
-_examples/recv/recv
-_examples/send/send
-_examples/zrecv/zrecv
-_examples/zsend/zsend
+_examples/amqp/recv/recv
+_examples/amqp/send/send
+_examples/stomp/recv/recv
+_examples/stomp/send/send
+_examples/zmq/recv/recv
+_examples/zmq/send/send
