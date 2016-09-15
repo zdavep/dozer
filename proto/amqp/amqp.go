@@ -95,6 +95,7 @@ func (p *DozerProtocolAmqp) RecvLoop(messages chan []byte, quit chan bool) error
 		}
 	}()
 	<-quit
+	log.Println("amqp: Quit signal received")
 	return nil
 }
 
