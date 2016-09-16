@@ -9,15 +9,17 @@ import (
 	"errors"
 	"github.com/zdavep/dozer/proto"
 	_ "github.com/zdavep/dozer/proto/amqp"
+	_ "github.com/zdavep/dozer/proto/mangos"
 	_ "github.com/zdavep/dozer/proto/stomp"
 	_ "github.com/zdavep/dozer/proto/zmq4"
 )
 
 // Supported messaging protocols.
 var validProto = map[string]bool{
-	"amqp":  true,
-	"stomp": true,
-	"zmq4":  true,
+	"amqp":   true,
+	"mangos": true,
+	"stomp":  true,
+	"zmq4":   true,
 }
 
 // Core dozer type.
