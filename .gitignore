@@ -1,6 +1,8 @@
 _examples/pump/pump
 _examples/amqp/recv/recv
 _examples/amqp/send/send
+_examples/mangos/recv/recv
+_examples/mangos/send/send
 _examples/stomp/recv/recv
 _examples/stomp/send/send
 _examples/zmq/recv/recv

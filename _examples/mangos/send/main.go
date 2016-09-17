@@ -49,10 +49,10 @@ func sendWorker(messages chan []byte, timeout chan bool, quit chan bool) {
 	}
 }
 
-// Send messages to a ZeroMQ socket for 10 seconds.
+// Send messages to a Mangos socket for 10 seconds.
 func main() {
 
-	// Create a dozer ZeroMQ socket instance
+	// Create a dozer Mangos socket instance
 	dz := dozer.Socket("push").WithProtocol("mangos")
 	err := dz.Bind("*", 5555) // Bind to all interfaces
 	if err != nil {
