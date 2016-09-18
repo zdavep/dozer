@@ -6,20 +6,28 @@
 package amqp
 
 import (
-	"errors"
 	"fmt"
 	"github.com/streadway/amqp"
 	"github.com/zdavep/dozer/proto"
-	"log"
+	"sync"
+	"sync/atomic"
 )
+
+// AMQP Context type
+type Context struct {
+	Conn *amqp.Connection
+	Chan *amqp.Channel
+}
 
 // AMQP protocol type.
 type DozerProtocolAmqp struct {
-	Creds string
-	Conn  *amqp.Connection
-	Chan  *amqp.Channel
-	Queue amqp.Queue
+	sync.RWMutex
+	Creds    string
+	contexts map[uint64]Context
 }
+
+// Id sequence
+var counter uint64
 
 // Register AMQP protocol.
 func init() {
@@ -28,63 +36,44 @@ func init() {
 
 // Intialize the AMQP protocol
 func (p *DozerProtocolAmqp) Init(args ...string) error {
+	p.Lock()
 	if len(args) >= 2 {
 		p.Creds = fmt.Sprintf("%s:%s", args[0], args[1])
 	}
+	p.contexts = make(map[uint64]Context)
+	p.Unlock()
 	return nil
 }
 
 // Connect to a AMQP server
-func (p *DozerProtocolAmqp) Dial(host string, port int64) error {
+func (p *DozerProtocolAmqp) Dial(typ, host string, port int64) (uint64, error) {
+	p.Lock()
 	bind := fmt.Sprintf("amqp://%s@%s:%d", p.Creds, host, port)
 	conn, err := amqp.Dial(bind)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	ch, err := conn.Channel()
 	if err != nil {
-		return err
+		return 0, err
 	}
-	p.Conn = conn
-	p.Chan = ch
-	return nil
-}
-
-// Subscribe to the given queue using the AMQP protocol.
-func (p *DozerProtocolAmqp) RecvFrom(dest string) error {
-	q, err := newQueue(p, dest)
-	if err != nil {
-		return err
-	}
-	p.Queue = q
-	return nil
-}
-
-// Set the name of the queue we're sending to
-func (p *DozerProtocolAmqp) SendTo(dest string) error {
-	q, err := newQueue(p, dest)
-	if err != nil {
-		return err
-	}
-	p.Queue = q
-	return nil
-}
-
-// Create a new AMQP queue
-func newQueue(p *DozerProtocolAmqp, dest string) (q amqp.Queue, err error) {
-	if dest != "" {
-		durable := true
-		q, err = p.Chan.QueueDeclare(dest, durable, false, false, false, nil)
-	} else {
-		err = errors.New("Invalid queue name")
-	}
-	return
+	id := atomic.AddUint64(&counter, 1)
+	p.contexts[id] = Context{conn, ch}
+	p.Unlock()
+	return id, nil
 }
 
 // Receive messages from a queue and forward them to a channel until a quit signal fires.
-func (p *DozerProtocolAmqp) RecvLoop(messages chan []byte, quit chan bool) error {
-	defer p.Close()
-	queue, err := p.Chan.Consume(p.Queue.Name, "", true, false, false, false, nil)
+func (p *DozerProtocolAmqp) RecvFrom(id uint64, dest string, messages chan []byte, quit chan bool) error {
+	p.RLock()
+	ctx := p.contexts[id]
+	p.RUnlock()
+	durable := true
+	q, err := ctx.Chan.QueueDeclare(dest, durable, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	queue, err := ctx.Chan.Consume(q.Name, "", true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -94,30 +83,49 @@ func (p *DozerProtocolAmqp) RecvLoop(messages chan []byte, quit chan bool) error
 		}
 	}()
 	<-quit
-	log.Println("amqp: Quit signal received")
 	return nil
 }
 
 // Send messages to a queue from a channel until a quit signal fires.
-func (p *DozerProtocolAmqp) SendLoop(messages chan []byte, quit chan bool) error {
-	defer p.Close()
+func (p *DozerProtocolAmqp) SendTo(id uint64, dest string, messages chan []byte, quit chan bool) error {
+	p.RLock()
+	ctx := p.contexts[id]
+	p.RUnlock()
+	durable := true
+	q, err := ctx.Chan.QueueDeclare(dest, durable, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		return err
+	}
 	for {
 		select {
+		case <-quit:
+			return nil
 		case msg := <-messages:
-			err := p.Chan.Publish("", p.Queue.Name, false, false, amqp.Publishing{ContentType: "text/plain", Body: msg})
+			err := ctx.Chan.Publish("", q.Name, false, false, amqp.Publishing{ContentType: "text/plain", Body: msg})
 			if err != nil {
 				return err
 			}
-		case <-quit:
-			log.Println("amqp: Quit signal received")
-			return nil
 		}
 	}
 }
 
 // Unsubscribe and disconnect.
 func (p *DozerProtocolAmqp) Close() error {
-	p.Chan.Close()
-	p.Conn.Close()
+	p.Lock()
+	defer p.Unlock()
+	if len(p.contexts) > 0 {
+		for id, ctx := range p.contexts {
+			if err := ctx.Chan.Close(); err != nil {
+				return err
+			}
+			if err := ctx.Conn.Close(); err != nil {
+				return err
+			}
+			delete(p.contexts, id)
+		}
+	}
 	return nil
 }

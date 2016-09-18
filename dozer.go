@@ -11,7 +11,6 @@ import (
 	_ "github.com/zdavep/dozer/proto/amqp"
 	_ "github.com/zdavep/dozer/proto/mangos"
 	_ "github.com/zdavep/dozer/proto/stomp"
-	_ "github.com/zdavep/dozer/proto/zmq4"
 )
 
 // Supported messaging protocols.
@@ -19,15 +18,16 @@ var validProto = map[string]bool{
 	"amqp":   true,
 	"mangos": true,
 	"stomp":  true,
-	"zmq4":   true,
 }
 
 // Core dozer type.
 type Dozer struct {
-	dest      string
-	protoName string
-	context   []string
-	protocol  proto.DozerProtocol
+	socketId   uint64
+	socketType string
+	dest       string
+	protoName  string
+	context    []string
+	protocol   proto.DozerProtocol
 }
 
 // Create a new Dozer queue.
@@ -36,10 +36,8 @@ func Queue(queue string) *Dozer {
 }
 
 // Create a new Dozer socket.
-func Socket(socketType string) *Dozer {
-	ctx := make([]string, 0)
-	ctx = append(ctx, socketType)
-	return &Dozer{context: ctx}
+func Socket(typ string) *Dozer {
+	return &Dozer{socketType: typ, context: make([]string, 0)}
 }
 
 // Set the use context type for credentials
@@ -69,19 +67,19 @@ func (d *Dozer) Connect(host string, port int64) error {
 	if err != nil {
 		return err
 	}
-	if err := p.Dial(host, port); err != nil {
+	d.protocol = p
+	id, err := p.Dial(d.socketType, host, port)
+	if err != nil {
 		return err
 	}
-	d.protocol = p
+	d.socketId = id
 	return nil
 }
 
 // Receive messages from the lower level protocol and forward them to a channel until a quit signal fires.
 func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
-	if err := d.protocol.RecvFrom(d.dest); err != nil {
-		return err
-	}
-	if err := d.protocol.RecvLoop(messages, quit); err != nil {
+	defer d.protocol.Close()
+	if err := d.protocol.RecvFrom(d.socketId, d.dest, messages, quit); err != nil {
 		return err
 	}
 	return nil
@@ -89,10 +87,8 @@ func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 
 // Send messages to the lower level protocol from a channel until a quit signal fires.
 func (d *Dozer) SendLoop(messages chan []byte, quit chan bool) error {
-	if err := d.protocol.SendTo(d.dest); err != nil {
-		return err
-	}
-	if err := d.protocol.SendLoop(messages, quit); err != nil {
+	defer d.protocol.Close()
+	if err := d.protocol.SendTo(d.socketId, d.dest, messages, quit); err != nil {
 		return err
 	}
 	return nil

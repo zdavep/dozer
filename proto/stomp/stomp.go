@@ -11,15 +11,18 @@ import (
 	"github.com/go-stomp/stomp"
 	"github.com/go-stomp/stomp/frame"
 	"github.com/zdavep/dozer/proto"
-	"log"
+	"sync"
+	"sync/atomic"
 )
 
 // Stomp protocol type.
 type DozerProtocolStomp struct {
-	conn *stomp.Conn
-	subs *stomp.Subscription
-	dest string
+    sync.RWMutex
+	conns map[uint64]*stomp.Conn
 }
+
+// Id sequence
+var counter uint64
 
 // Default send options.
 var options []func(*frame.Frame) error = []func(*frame.Frame) error{
@@ -34,86 +37,82 @@ func init() {
 
 // Intialize the stomp protocol
 func (p *DozerProtocolStomp) Init(args ...string) error {
-	// Nothing to do
+	p.Lock()
+	p.conns = make(map[uint64]*stomp.Conn)
+	p.Unlock()
 	return nil
 }
 
 // Connect to a stomp server
-func (p *DozerProtocolStomp) Dial(host string, port int64) error {
+func (p *DozerProtocolStomp) Dial(typ, host string, port int64) (uint64, error) {
 	bind := fmt.Sprintf("%s:%d", host, port)
 	conn, err := stomp.Dial("tcp", bind)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	p.conn = conn
-	return nil
-}
-
-// Subscribe to the given queue/topic using the stomp protocol.
-func (p *DozerProtocolStomp) RecvFrom(dest string) error {
-	sub, err := p.conn.Subscribe(dest, stomp.AckClientIndividual)
-	if err != nil {
-		p.conn.Disconnect()
-		return err
-	}
-	p.subs = sub
-	p.dest = dest
-	return nil
-}
-
-// Set the name of the queue/topic we're sending to
-func (p *DozerProtocolStomp) SendTo(dest string) error {
-	if dest == "" {
-		return errors.New("Invalid queue/topic name")
-	}
-	p.dest = dest
-	return nil
+	id := atomic.AddUint64(&counter, 1)
+	p.Lock()
+	p.conns[id] = conn
+	p.Unlock()
+	return id, nil
 }
 
 // Receive messages from a queue/topic and forward them to a channel until a quit signal fires.
-func (p *DozerProtocolStomp) RecvLoop(messages chan []byte, quit chan bool) error {
-	defer p.Close()
+func (p *DozerProtocolStomp) RecvFrom(id uint64, dest string, messages chan []byte, quit chan bool) error {
+	if dest == "" {
+		return errors.New("Invalid queue name")
+	}
+	p.RLock()
+	conn := p.conns[id]
+	p.RUnlock()
+	subs, err := conn.Subscribe(dest, stomp.AckClientIndividual)
+	if err != nil {
+		return err
+	}
 	for {
 		select {
-		case msg := <-p.subs.C:
+		case <-quit:
+			return nil
+		case msg := <-subs.C:
 			messages <- msg.Body
-			if err := p.conn.Ack(msg); err != nil {
+			if err := conn.Ack(msg); err != nil {
 				return err
 			}
-		case <-quit:
-			log.Println("stomp: Quit signal received")
-			return nil
 		}
 	}
 }
 
 // Send messages to a queue/topic from a channel until a quit signal fires.
-func (p *DozerProtocolStomp) SendLoop(messages chan []byte, quit chan bool) error {
-	defer p.Close()
+func (p *DozerProtocolStomp) SendTo(id uint64, dest string, messages chan []byte, quit chan bool) error {
+	if dest == "" {
+		return errors.New("Invalid queue/topic name")
+	}
+	p.RLock()
+	conn := p.conns[id]
+	p.RUnlock()
 	for {
 		select {
+		case <-quit:
+			return nil
 		case msg := <-messages:
-			if err := p.conn.Send(p.dest, "text/plain", msg, options...); err != nil {
+			if err := conn.Send(dest, "text/plain", msg, options...); err != nil {
 				return err
 			}
-		case <-quit:
-			log.Println("stomp: Quit signal received")
-			return nil
 		}
 	}
 }
 
 // Unsubscribe and disconnect.
 func (p *DozerProtocolStomp) Close() error {
-	if p.subs != nil && p.subs.Active() {
-		if err := p.subs.Unsubscribe(); err != nil {
-			log.Println(err)
-			return err
+	p.Lock()
+	defer p.Unlock()
+	if len(p.conns) > 0 {
+		for id, conn := range p.conns {
+			if err := conn.Disconnect(); err != nil {
+				return err
+			}
+			delete(p.conns, id)
 		}
-	}
-	if err := p.conn.Disconnect(); err != nil {
-		log.Println(err)
-		return err
 	}
 	return nil
 }

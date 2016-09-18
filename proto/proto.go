@@ -8,24 +8,28 @@ package proto
 import (
 	"fmt"
 	"io"
+	"sync"
 )
 
 // dozer protocol specific functions.
 type DozerProtocol interface {
 	Init(args ...string) error
-	Dial(host string, port int64) error
-	RecvFrom(dest string) error
-	SendTo(dest string) error
-	RecvLoop(messages chan []byte, quit chan bool) error
-	SendLoop(messages chan []byte, quit chan bool) error
+	Dial(typ, host string, port int64) (uint64, error)
+	RecvFrom(id uint64, dest string, messages chan []byte, quit chan bool) error
+	SendTo(id uint64, dest string, messages chan []byte, quit chan bool) error
 	io.Closer
 }
 
 // protocol registry
 var registry = make(map[string]DozerProtocol)
 
+// Registry lock
+var mutex = &sync.Mutex{}
+
 // Register a protocol by name
 func Register(name string, p DozerProtocol) {
+	mutex.Lock()
+	defer mutex.Unlock()
 	if p == nil {
 		panic("proto: Registered protocol is nil")
 	}
@@ -37,6 +41,8 @@ func Register(name string, p DozerProtocol) {
 
 // Load and initialize a protocol
 func LoadProtocol(name string, args ...string) (DozerProtocol, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
 	p, ok := registry[name]
 	if !ok {
 		return nil, fmt.Errorf("proto: unknown protocol %q (forgotten import?)", name)
