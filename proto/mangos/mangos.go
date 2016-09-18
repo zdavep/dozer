@@ -21,7 +21,7 @@ var counter uint64
 
 // Mangos protocol type.
 type DozerProtocolMangos struct {
-    sync.RWMutex
+	sync.RWMutex
 	sockets map[uint64]mangos.Socket
 }
 

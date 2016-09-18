@@ -17,7 +17,7 @@ import (
 
 // Stomp protocol type.
 type DozerProtocolStomp struct {
-    sync.RWMutex
+	sync.RWMutex
 	conns map[uint64]*stomp.Conn
 }
 
