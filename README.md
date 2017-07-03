@@ -8,3 +8,4 @@ Current support:
 -   ActiveMQ via Stomp
 -   RabbitMQ via AMQP
 -   SP ("Scalable Protocols") via mangos
+-   Kafka

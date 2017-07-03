@@ -1,4 +1,4 @@
-// Copyright 2016 Dave Pederson.  All rights reserved.
+// Copyright 2017 Dave Pederson.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/zdavep/dozer/proto"
 	_ "github.com/zdavep/dozer/proto/amqp"
+	_ "github.com/zdavep/dozer/proto/kafka"
 	_ "github.com/zdavep/dozer/proto/mangos"
 	_ "github.com/zdavep/dozer/proto/stomp"
 )
@@ -18,6 +19,7 @@ var validProto = map[string]bool{
 	"amqp":   true,
 	"mangos": true,
 	"stomp":  true,
+	"kafka":  true,
 }
 
 // Core dozer type.
@@ -35,6 +37,11 @@ func Queue(queue string) *Dozer {
 	return &Dozer{dest: queue, context: make([]string, 0)}
 }
 
+// Create a new Dozer topic.
+func Topic(name string) *Dozer {
+	return &Dozer{dest: name, context: make([]string, 0)}
+}
+
 // Create a new Dozer socket.
 func Socket(typ string) *Dozer {
 	return &Dozer{socketType: typ, context: make([]string, 0)}
@@ -50,6 +57,18 @@ func (d *Dozer) WithCredentials(user, pass string) *Dozer {
 // Set the protocol name field
 func (d *Dozer) WithProtocol(protocolName string) *Dozer {
 	d.protoName = protocolName
+	return d
+}
+
+// Set the mode for producing messages (kafka support)
+func (d *Dozer) Producer() *Dozer {
+	d.socketType = "producer"
+	return d
+}
+
+// Set the mode for consuming messages (kafka support)
+func (d *Dozer) Consumer() *Dozer {
+	d.socketType = "consumer"
 	return d
 }
 

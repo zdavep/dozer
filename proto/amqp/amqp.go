@@ -1,4 +1,4 @@
-// Copyright 2016 Dave Pederson.  All rights reserved.
+// Copyright 2017 Dave Pederson.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -47,7 +47,6 @@ func (p *DozerProtocolAmqp) Init(args ...string) error {
 
 // Connect to a AMQP server
 func (p *DozerProtocolAmqp) Dial(typ, host string, port int64) (uint64, error) {
-	p.Lock()
 	bind := fmt.Sprintf("amqp://%s@%s:%d", p.Creds, host, port)
 	conn, err := amqp.Dial(bind)
 	if err != nil {
@@ -58,6 +57,7 @@ func (p *DozerProtocolAmqp) Dial(typ, host string, port int64) (uint64, error) {
 		return 0, err
 	}
 	id := atomic.AddUint64(&counter, 1)
+	p.Lock()
 	p.contexts[id] = Context{conn, ch}
 	p.Unlock()
 	return id, nil
@@ -93,9 +93,6 @@ func (p *DozerProtocolAmqp) SendTo(id uint64, dest string, messages chan []byte,
 	p.RUnlock()
 	durable := true
 	q, err := ctx.Chan.QueueDeclare(dest, durable, false, false, false, nil)
-	if err != nil {
-		return err
-	}
 	if err != nil {
 		return err
 	}
