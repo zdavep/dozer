@@ -16,7 +16,6 @@ import (
 
 // Kafka connection type
 type Conn struct {
-	typ      string
 	consumer sarama.Consumer
 	producer sarama.SyncProducer
 }
@@ -45,26 +44,25 @@ func (p *DozerProtocolKafka) Init(args ...string) error {
 
 // Dial - connect to a kafka broker
 func (p *DozerProtocolKafka) Dial(typ, host string, port int64) (uint64, error) {
-	id := atomic.AddUint64(&counter, 1)
+	var conn Conn
 	broker := fmt.Sprintf("%s:%d", host, port)
 	if typ == "consumer" {
 		consumer, err := sarama.NewConsumer([]string{broker}, nil)
 		if err != nil {
 			return 0, err
 		}
-		p.Lock()
-		p.connections[id] = Conn{typ, consumer, nil}
-		p.Unlock()
-
+		conn = Conn{consumer, nil}
 	} else if typ == "producer" {
 		producer, err := sarama.NewSyncProducer([]string{broker}, nil)
 		if err != nil {
 			return 0, err
 		}
-		p.Lock()
-		p.connections[id] = Conn{typ, nil, producer}
-		p.Unlock()
+		conn = Conn{nil, producer}
 	}
+	id := atomic.AddUint64(&counter, 1)
+	p.Lock()
+	p.connections[id] = conn
+	p.Unlock()
 	return id, nil
 }
 
@@ -117,11 +115,12 @@ func (p *DozerProtocolKafka) Close() error {
 	defer p.Unlock()
 	if len(p.connections) > 0 {
 		for id, conn := range p.connections {
-			if conn.typ == "consumer" && conn.consumer != nil {
+			if conn.consumer != nil {
 				if err := conn.consumer.Close(); err != nil {
 					return err
 				}
-			} else if conn.typ == "producer" && conn.producer != nil {
+			}
+			if conn.producer != nil {
 				if err := conn.producer.Close(); err != nil {
 					return err
 				}
