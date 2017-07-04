@@ -1,11 +1,12 @@
-Dozer
-=====
+# Dozer
 
-Dozer makes it easier for developers to create/maintain complex messaging workflows with Go.
+Messaging abstractions written in Go.
 
-Current support:
+Current platform support:
 
--   ActiveMQ via Stomp
--   RabbitMQ via AMQP
--   SP ("Scalable Protocols") via mangos
--   Kafka
+- ActiveMQ (stomp)
+- RabbitMQ (AMQP)
+- Scalable Protocols (mangos)
+- Kafka
+
+[Examples](https://github.com/zdavep/dozer_examples)
