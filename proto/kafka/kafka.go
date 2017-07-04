@@ -16,7 +16,7 @@ import (
 
 // Kafka connection type
 type Conn struct {
-	typ string
+	typ      string
 	consumer sarama.Consumer
 	producer sarama.SyncProducer
 }
