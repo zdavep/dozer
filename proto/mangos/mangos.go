@@ -43,7 +43,7 @@ func (p *DozerProtocolMangos) Dial(typ, host string, port int64) (uint64, error)
 	var socket mangos.Socket
 	var err error
 	addr := fmt.Sprintf("tcp://%s:%d", host, port)
-	if typ == "send" {
+	if typ == "producer" {
 		socket, err = push.NewSocket()
 		if err != nil {
 			return 0, err
@@ -52,7 +52,7 @@ func (p *DozerProtocolMangos) Dial(typ, host string, port int64) (uint64, error)
 		if err = socket.Dial(addr); err != nil {
 			return 0, err
 		}
-	} else if typ == "recv" {
+	} else if typ == "consumer" {
 		socket, err = pull.NewSocket()
 		if err != nil {
 			return 0, err
