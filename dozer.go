@@ -11,6 +11,7 @@ import (
 	_ "github.com/zdavep/dozer/proto/amqp"
 	_ "github.com/zdavep/dozer/proto/kafka"
 	_ "github.com/zdavep/dozer/proto/mangos"
+	_ "github.com/zdavep/dozer/proto/nats"
 	_ "github.com/zdavep/dozer/proto/stomp"
 )
 
@@ -18,6 +19,7 @@ import (
 var validProto = map[string]bool{
 	"amqp":   true,
 	"mangos": true,
+	"nats":   true,
 	"stomp":  true,
 	"kafka":  true,
 }
