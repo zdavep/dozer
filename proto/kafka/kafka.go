@@ -17,7 +17,7 @@ import (
 // Kafka connection type
 type Conn struct {
 	consumer sarama.Consumer
-	producer sarama.SyncProducer
+	producer sarama.AsyncProducer
 }
 
 // Kafka protocol type.
@@ -53,7 +53,7 @@ func (p *DozerProtocolKafka) Dial(typ, host string, port int64) (uint64, error) 
 		}
 		conn = Conn{consumer, nil}
 	} else if typ == "producer" {
-		producer, err := sarama.NewSyncProducer([]string{broker}, nil)
+		producer, err := sarama.NewAsyncProducer([]string{broker}, nil)
 		if err != nil {
 			return 0, err
 		}
@@ -99,10 +99,9 @@ func (p *DozerProtocolKafka) SendTo(id uint64, dest string, messages chan []byte
 		select {
 		case msg := <-messages:
 			data := &sarama.ProducerMessage{Topic: dest, Value: sarama.ByteEncoder(msg)}
-			_, _, err := conn.producer.SendMessage(data)
-			if err != nil {
-				return err
-			}
+			conn.producer.Input() <- data
+		case err := <-conn.producer.Errors():
+			return err
 		case <-quit:
 			return nil
 		}
