@@ -26,66 +26,62 @@ var validProto = map[string]bool{
 
 // Core dozer type.
 type Dozer struct {
-	id       uint64
-	typ      string
-	dest     string
-	name     string
-	context  []string
-	protocol proto.DozerProtocol
+	mode         string
+	dest         string
+	protocolId   uint64
+	protocolName string
+	context      []string
+	protocol     proto.DozerProtocol
 }
 
 // Create a new Dozer instance.
-func Init(dest string) *Dozer {
-	return &Dozer{dest: dest, context: make([]string, 0)}
+func Init(name string) *Dozer {
+	return &Dozer{protocolName: name, context: make([]string, 0)}
 }
 
-// Set the use context type for credentials
+// Set the auth credentials
 func (d *Dozer) WithCredentials(user, pass string) *Dozer {
 	d.context = append(d.context, user)
 	d.context = append(d.context, pass)
 	return d
 }
 
-// Set the protocol name field
-func (d *Dozer) WithProtocol(name string) *Dozer {
-	d.name = name
+// Set destination in producer mode
+func (d *Dozer) Producer(dest string) *Dozer {
+	d.dest = dest
+	d.mode = "producer"
 	return d
 }
 
-// Set the mode for producing messages (kafka support)
-func (d *Dozer) Producer() *Dozer {
-	d.typ = "producer"
-	return d
-}
-
-// Set the mode for consuming messages (kafka support)
-func (d *Dozer) Consumer() *Dozer {
-	d.typ = "consumer"
+// Set destination in consumer mode
+func (d *Dozer) Consumer(dest string) *Dozer {
+	d.dest = dest
+	d.mode = "consumer"
 	return d
 }
 
 // Connect or bind to a host and port.
 func (d *Dozer) Dial(host string, port int64) error {
-	if _, ok := validProto[d.name]; !ok {
+	if _, ok := validProto[d.protocolName]; !ok {
 		return errors.New("Unsupported protocol")
 	}
-	p, err := proto.LoadProtocol(d.name, d.context...)
+	p, err := proto.LoadProtocol(d.protocolName, d.context...)
 	if err != nil {
 		return err
 	}
 	d.protocol = p
-	id, err := p.Dial(d.typ, host, port)
+	id, err := p.Dial(d.mode, host, port)
 	if err != nil {
 		return err
 	}
-	d.id = id
+	d.protocolId = id
 	return nil
 }
 
 // Receive messages from the lower level protocol and forward them to a channel until a quit signal fires.
 func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 	defer d.protocol.Close()
-	if err := d.protocol.RecvFrom(d.id, d.dest, messages, quit); err != nil {
+	if err := d.protocol.RecvFrom(d.protocolId, d.dest, messages, quit); err != nil {
 		return err
 	}
 	return nil
@@ -94,7 +90,7 @@ func (d *Dozer) RecvLoop(messages chan []byte, quit chan bool) error {
 // Send messages to the lower level protocol from a channel until a quit signal fires.
 func (d *Dozer) SendLoop(messages chan []byte, quit chan bool) error {
 	defer d.protocol.Close()
-	if err := d.protocol.SendTo(d.id, d.dest, messages, quit); err != nil {
+	if err := d.protocol.SendTo(d.protocolId, d.dest, messages, quit); err != nil {
 		return err
 	}
 	return nil
