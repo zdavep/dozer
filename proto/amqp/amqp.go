@@ -36,10 +36,10 @@ func init() {
 
 // Intialize the AMQP protocol
 func (p *DozerProtocolAmqp) Init(args ...string) error {
-	p.Lock()
 	if len(args) >= 2 {
 		p.Creds = fmt.Sprintf("%s:%s", args[0], args[1])
 	}
+	p.Lock()
 	p.contexts = make(map[uint64]Context)
 	p.Unlock()
 	return nil

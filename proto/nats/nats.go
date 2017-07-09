@@ -17,6 +17,7 @@ import (
 // NATS protocol type.
 type DozerProtocolNats struct {
 	sync.RWMutex
+	creds string
 	conns map[uint64]*nats.Conn
 }
 
@@ -30,6 +31,9 @@ func init() {
 
 // Intialize the NATS protocol
 func (p *DozerProtocolNats) Init(args ...string) error {
+	if len(args) >= 2 {
+		p.creds = fmt.Sprintf("%s:%s", args[0], args[1])
+	}
 	p.Lock()
 	p.conns = make(map[uint64]*nats.Conn)
 	p.Unlock()
@@ -38,7 +42,12 @@ func (p *DozerProtocolNats) Init(args ...string) error {
 
 // Connect to a NATS server
 func (p *DozerProtocolNats) Dial(typ, host string, port int64) (uint64, error) {
-	url := fmt.Sprintf("nats://%s:%d", host, port)
+	var url string
+	if p.creds != "" {
+		url = fmt.Sprintf("nats://%s@%s:%d", p.creds, host, port)
+	} else {
+		url = fmt.Sprintf("nats://%s:%d", host, port)
+	}
 	conn, err := nats.Connect(url)
 	if err != nil {
 		return 0, err
