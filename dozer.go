@@ -8,11 +8,6 @@ package dozer
 import (
 	"errors"
 	"github.com/zdavep/dozer/proto"
-	_ "github.com/zdavep/dozer/proto/amqp"
-	_ "github.com/zdavep/dozer/proto/kafka"
-	_ "github.com/zdavep/dozer/proto/mangos"
-	_ "github.com/zdavep/dozer/proto/nats"
-	_ "github.com/zdavep/dozer/proto/stomp"
 )
 
 // Supported messaging protocols.
