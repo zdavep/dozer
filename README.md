@@ -8,5 +8,6 @@ Current platform support:
 - RabbitMQ (AMQP)
 - Scalable Protocols (mangos)
 - Kafka
+- Nats
 
 [Examples](https://github.com/zdavep/dozer_examples)
