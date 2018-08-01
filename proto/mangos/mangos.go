@@ -7,13 +7,15 @@ package mangos
 
 import (
 	"fmt"
-	"github.com/go-mangos/mangos"
-	"github.com/go-mangos/mangos/protocol/pull"
-	"github.com/go-mangos/mangos/protocol/push"
-	"github.com/go-mangos/mangos/transport/tcp"
-	"github.com/zdavep/dozer/proto"
 	"sync"
 	"sync/atomic"
+
+	"nanomsg.org/go-mangos"
+	"nanomsg.org/go-mangos/protocol/pull"
+	"nanomsg.org/go-mangos/protocol/push"
+	"nanomsg.org/go-mangos/transport/tcp"
+
+	"github.com/zdavep/dozer/proto"
 )
 
 // Id sequence
